@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  nginx:
+    image: nginx
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/nginx.conf
+      - ./cache:/var/cache/nginx
+      - ./certs:/etc/nginx/certs
+    depends_on:
+      - node
+
+  node:
+    build: .
+    container_name: node
+    ports:
+      - "3000:3000"
+    command: ['npm', 'start']
