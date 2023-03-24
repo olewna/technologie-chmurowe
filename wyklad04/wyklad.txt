@@ -1,0 +1,18 @@
+docker compose robi networking
+
+====================
+NGINX
+|
+|
+--BACKEND
+    |
+    --MyPOSTGRES
+    --MyREDIS
+--FRONTEND
+
+===================
+
+docker compose up
+docker compose down
+pingowanie networka
+docker stop "nazwa"

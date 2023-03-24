@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  myredis:
+    image: 'redis:alpine'
+    # restart: always
+  mynginx:
+    image: 'nginx:alpine'
+    ports:
+      - '80:80'
+    depends_on:
+      - myredis
