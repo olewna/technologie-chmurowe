@@ -1,64 +1,55 @@
 const express = require("express");
 const Redis = require("ioredis");
-const bodyParser = require("body-parser");
-const { Pool } = require("pg");
+const { Client } = require("pg");
 
 const app = express();
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-const redisClient = new Redis({
+app.use(express.json());
+
+const clientPG = new Client({
+  host: "postgres",
+  port: 5432,
+  database: "mydatabase",
+  user: "postgres",
+  password: "password",
+});
+clientPG.connect();
+
+clientPG.query(
+  "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username VARCHAR(50) NOT NULL);"
+);
+
+const client = new Redis({
   host: "redis",
   port: 6379,
 });
-const pool = new Pool({
-  user: "me",
-  password: "my_password",
-  host: "postgres",
-  database: "users",
-  port: 5432,
+client.on("error", (err) => console.log(err));
+
+app.get("/", (req, res) => {
+  res.send("Hello World");
 });
 
-app.post("/messages", (req, res) => {
+app.post("/message", async (req, res) => {
   const message = req.body.message;
-
-  redisClient.rpush("messages", message, (err) => {
-    if (err) {
-      console.error(err);
-      res.status(500).send("Błąd serwera Redis");
-    } else {
-      res.sendStatus(200);
-    }
-  });
+  await client.rpush("messages", message);
+  res.send("Message sent");
 });
 
-app.get("/messages", (req, res) => {
-  redisClient.lrange("messages", 0, -1, (err, messages) => {
-    if (err) {
-      console.error(err);
-      res.status(500).send("Błąd serwera Redis");
-    } else {
-      res.json(messages);
-    }
-  });
+app.get("/message", async (req, res) => {
+  const messages = await client.lrange("messages", 0, -1);
+  res.send(messages);
 });
 
-app.post("/users", (req, res) => {
-  const { username, email } = req.body;
+app.post("/user", async (req, res) => {
+  const user = req.body.user;
+  await clientPG.query("INSERT INTO users (username) VALUES ($1)", [user]);
+  res.send("User added");
+});
 
-  pool.query(
-    "INSERT INTO users (username, email) VALUES ($1, $2)",
-    [username, email],
-    (err) => {
-      if (err) {
-        console.error(err);
-        res.status(500).send("Błąd serwera PostgreSQL");
-      } else {
-        res.sendStatus(200);
-      }
-    }
-  );
+app.get("/user", async (req, res) => {
+  const users = await clientPG.query("SELECT * FROM users");
+  res.send(users.rows);
 });
 
 app.listen(3000, () => {
-  console.log("Serwer Express działa na porcie 3000");
+  console.log("Server listening on port 3000");
 });
