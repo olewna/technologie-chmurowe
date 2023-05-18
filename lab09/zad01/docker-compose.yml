@@ -2,4 +2,27 @@ version: '3'
 
 services:
   app:
-    
+    build: .
+    networks:
+     - my_network
+    ports:
+     - 3000:3000
+    depends_on:
+      - database
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/live || exit 1"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 5s
+  database:
+    image: mongo:latest
+    networks:
+     - my_network
+    ports:
+      - 27017:27017
+
+networks:
+ my_network:
+  driver: bridge

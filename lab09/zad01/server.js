@@ -1,77 +1,80 @@
 const express = require("express");
+const MongoClient = require("mongodb").MongoClient;
 const cors = require("cors");
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-const port = 3000;
 
-const users = [
-  {
-    id: 1,
-    name: "John",
-    lastname: "Kowalski",
-    age: 20,
-  },
-  {
-    id: 2,
-    name: "Jane",
-    lastname: "Nowak",
-    age: 21,
-  },
-  {
-    id: 3,
-    name: "Bob",
-    lastname: "Bobowski",
-    age: 22,
-  },
-];
+const port = 3000;
+const url = "mongodb://database:27017";
+const client = new MongoClient(url, { useUnifiedTopology: true });
+
+MongoClient.connect(url, (err, db) => {
+  if (err) throw err;
+  const dbo = db.db("test");
+  dbo.createCollection("users", (err, res) => {
+    if (err) throw err;
+    console.log("Collection created");
+    db.close();
+  });
+});
 
 app.get("/", (req, res) => {
   res.send({ msg: "Hello World" });
 });
 
-app.get("/users", (req, res) => {
+app.get("/users", async (req, res) => {
+  await client.connect();
+  const users = await client.db("test").collection("users").find().toArray();
   res.send(users);
 });
 
-app.get("/user/:id", (req, res) => {
-  const id = +req.params.id;
-  const user = users.find((user) => user.id === id);
-  res.status(200).send(user);
-});
-
-app.post("/user", (req, res) => {
+app.post("/user", async (req, res) => {
   // console.log(req.body);
-  const newID = users[users.length - 1].id + 1;
+  await client.connect();
   const body = req.body;
-  const user = {
-    id: newID,
-    name: body.name,
-    lastname: body.lastname,
-    age: body.age,
-  };
-  users.push(user);
+  const { name, lastname, age } = body;
+  const newUser = { name: name, lastname: lastname, age: age };
+  const user = await client.db("test").collection("users").insertOne(newUser);
   res.status(201).send(user);
 });
 
-app.put("/user/:id", (req, res) => {
-  const id = +req.params.id;
+app.put("/user", async (req, res) => {
+  await client.connect();
   const body = req.body;
-  const user = users.find((user) => user.id === id);
-  user.name = body.name === undefined ? user.name : body.name;
-  user.lastname = body.lastname === undefined ? user.lastname : body.lastname;
-  user.age = body.age === undefined ? user.age : body.age;
+  const { name, lastname, age, newName, newLastname, newAge } = body;
+  const foundUser = { name: name, lastname: lastname, age: age };
+  const newUser = { name: newName, lastname: newLastname, age: newAge };
+  const user = await client
+    .db("test")
+    .collection("users")
+    .updateOne(foundUser, { $set: newUser });
 
   res.status(200).send(user);
 });
 
-app.delete("/user/:id", (req, res) => {
-  const id = +req.params.id;
-  const index = users.findIndex((user) => user.id === id);
-  users.splice(index, 1);
+app.delete("/user", async (req, res) => {
+  await client.connect();
+  const body = req.body;
+  const { name, lastname, age } = body;
+  const foundUser = { name: name, lastname: lastname, age: age };
+  const user = await client.db("test").collection("users").deleteOne(foundUser);
 
-  res.status(200).send(users);
+  res.status(200).send(user);
+});
+
+app.get("/live", (req, res) => {
+  res.status(200).send("Alive");
+});
+
+app.get("/ready", async (req, res) => {
+  try {
+    await client.connect();
+    res.status(200).send("Ready");
+  } catch (err) {
+    res.status(500).send("Not ready");
+  }
 });
 
 app.listen(port, () => {
