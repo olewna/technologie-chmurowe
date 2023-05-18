@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  app:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    platform: linux/arm64
+    networks:
+      - my_network
+    ports:
+    - 3000:3000
+    depends_on:
+    - database
+
+  database:
+    image: mongo:latest
+    platform: linux/amd64
+    networks:
+      - my_network
+    ports:
+      - 27017:27017
+
+networks:
+ my_network:
+  driver: bridge
