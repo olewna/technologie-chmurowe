@@ -1,0 +1,16 @@
+{
+    "data": [
+     {
+         "_id": "100",
+         "name": "Laptop",
+         "brand": "Apple",
+         "price": 5000
+     },
+     {
+         "_id": "101",
+         "name": "Smartfon",
+         "brand": "Samsung",
+         "price": 2000
+     }
+   ]
+ }
